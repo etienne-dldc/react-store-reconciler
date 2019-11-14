@@ -1,6 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import { ReactStore } from "./renderer/index";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { ReactStore } from '../src/index';
 
 interface CounterState {
   value: number;
@@ -22,19 +22,39 @@ const CounterStateManager = ReactStore.createComponent<{}, CounterState>(() => {
   return ReactStore.createState({
     value: counter,
     increment,
-    decrement
+    decrement,
   });
 });
 
-const rootElement = ReactStore.createObject({
-  counterA: ReactStore.createElement(CounterStateManager, {}),
-  counterB: ReactStore.createElement(CounterStateManager, {})
+const Counters = ReactStore.createComponent(() => {
+  const [count, setCount] = React.useState(3);
+
+  const addCounter = React.useCallback(() => {
+    setCount(p => p + 1);
+  }, []);
+
+  return ReactStore.createMergeObject(
+    ReactStore.createObject({
+      counters: ReactStore.createArray(
+        new Array(count)
+          .fill(null)
+          .map((v, i) =>
+            ReactStore.createElement(CounterStateManager, { key: i })
+          )
+      ),
+    }),
+    ReactStore.createState({
+      addCounter,
+    })
+  );
 });
+
+const rootElement = ReactStore.createElement(Counters, {});
 
 const store = ReactStore.createStore(rootElement);
 
 const Counter = React.memo<{ counter: CounterState }>(function Counter({
-  counter
+  counter,
 }) {
   return (
     <div>
@@ -45,15 +65,21 @@ const Counter = React.memo<{ counter: CounterState }>(function Counter({
   );
 });
 
-store.subscribe(() => {
+function render() {
   const state = store.getState();
   ReactDOM.render(
     <div>
-      <Counter counter={state.counterA} />
-      <Counter counter={state.counterB} />
+      <button onClick={state.addCounter}>Add counter</button>
+      {state.counters.map((counter, index) => (
+        <Counter counter={counter} key={index} />
+      ))}
     </div>,
-    document.getElementById("root")
+    document.getElementById('root')
   );
-});
+}
+
+store.subscribe(render);
 
 store.render();
+
+(window as any).render = render;

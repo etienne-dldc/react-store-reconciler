@@ -1,9 +1,7 @@
 import React from 'react';
-import { Container, reconcilerInstance } from './reconciler';
+import { Container, reconcilerInstance, NodeType } from './reconciler';
 import { Subscription, SubscribeMethod } from 'suub';
 import { Instance, InstanceIs } from './instance';
-
-type Children = { [key: string]: StateElement<any> };
 
 const IS_ELEM = Symbol('IS_ELEM');
 
@@ -31,6 +29,13 @@ function getState(instance: Instance): any {
     instance.cache = instance.state;
   } else if (InstanceIs.Property(instance)) {
     instance.cache = getState(instance.children!);
+  } else if (InstanceIs.Array(instance)) {
+    instance.cache = instance.children.map(inst => getState(inst));
+  } else if (InstanceIs.MergeObject(instance)) {
+    instance.cache = {
+      ...(instance.left ? getState(instance.left) : {}),
+      ...(instance.right ? getState(instance.right) : {}),
+    };
   } else {
     throw new Error(`Unhandled getState for ${(instance as any).type}`);
   }
@@ -50,7 +55,17 @@ export const ReactStore = {
   createElement,
   createState,
   createObject,
+  createArray,
+  createMergeObject,
 };
+
+function createElementInternal(
+  type: NodeType,
+  props: any,
+  ...children: Array<any>
+) {
+  return React.createElement(type, props, ...children);
+}
 
 function createElement<S, P>(
   component: StateComponent<P, S>,
@@ -60,19 +75,37 @@ function createElement<S, P>(
 }
 
 function createState<S>(state: S): StateElement<S> {
-  return React.createElement('state', { state }) as any;
+  return createElementInternal('state', { state }) as any;
 }
+
+type Children = { [key: string]: StateElement<any> };
 
 function createObject<S extends Children>(
   children: S
 ): StateElement<{ [K in keyof S]: S[K]['result'] }> {
   const resolved = children
     ? Object.keys(children).map(key =>
-        React.createElement('property', { name: key, key }, children[key])
+        createElementInternal('property', { name: key, key }, children[key])
       )
     : [];
+  return createElementInternal('object', {}, resolved) as any;
+}
 
-  return React.createElement('object', {}, resolved) as any;
+type StrKeyed = { [key: string]: any };
+
+function createMergeObject<
+  L extends StateElement<StrKeyed>,
+  R extends StateElement<StrKeyed>
+>(left: L, right: R): StateElement<L['result'] & R['result']> {
+  return createElementInternal('merge-object', {}, left, right) as any;
+}
+
+function createArray<S extends Array<StateElement<any>>>(
+  children: S
+): StateElement<
+  { [K in keyof S]: S[K] extends StateElement<infer T> ? T : never }
+> {
+  return createElementInternal('array', {}, children) as any;
 }
 
 function createComponent<P, T>(
