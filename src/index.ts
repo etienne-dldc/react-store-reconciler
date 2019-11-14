@@ -50,13 +50,27 @@ interface Store<S> {
   render: () => void;
 }
 
-export const ReactStore = {
-  createStore,
-  createComponent,
-  createValue,
+export const StoreNode = {
+  value: createValue,
+  object: createObject,
+  array: createArray,
 };
 
-type CreateElement<P, T> = (props: P) => StateElement<T>;
+export const ReactStore = {
+  createStore,
+  component: createComponent,
+  memo: createMemoComponent,
+};
+
+type AllOptional<P = {}> = {} extends P
+  ? true
+  : P extends Required<P>
+  ? false
+  : true;
+
+type CreateElement<P, T> = AllOptional<P> extends true
+  ? (props?: P & { key?: string | number }) => StateElement<T>
+  : (props: P & { key?: string | number }) => StateElement<T>;
 
 export type IState = {
   [key: string]:
@@ -81,14 +95,30 @@ export type ResolveType<State> = State extends StateElement<infer T>
   ? { [K in keyof State]: ResolveType<State[K]> }
   : State;
 
-function createComponent<P, T>(
-  component: (props: P) => T | StateElement<T>
+function createComponentInternal<T, P>(
+  component: (props: P) => T | StateElement<T>,
+  wrapper?: (val: any) => any
 ): CreateElement<P, ResolveType<T>> {
-  const Comp = (props: P) => {
+  let Comp = (props: P) => {
     const out = component(props);
     return toElements(out);
   };
-  return (props: P) => React.createElement(Comp as any, props) as any;
+  if (wrapper) {
+    Comp = wrapper(Comp);
+  }
+  return ((props: P) => React.createElement(Comp as any, props)) as any;
+}
+
+function createMemoComponent<T, P = {}>(
+  component: (props: P) => T | StateElement<T>
+): CreateElement<P, ResolveType<T>> {
+  return createComponentInternal(component, React.memo) as any;
+}
+
+function createComponent<T, P = {}>(
+  component: (props: P) => T | StateElement<T>
+): CreateElement<P, ResolveType<T>> {
+  return createComponentInternal(component);
 }
 
 function toElements<T>(obj: any): StateElement<T> {
@@ -96,25 +126,10 @@ function toElements<T>(obj: any): StateElement<T> {
     return obj as any;
   }
   if (Array.isArray(obj)) {
-    let changed = false;
-    const items = obj.map(item => {
-      const next = toElements(item);
-      if (changed === false && next === item) {
-        changed = true;
-      }
-      return next;
-    });
-    return createArray((changed ? items : obj) as any) as any;
+    return createArray(obj) as any;
   }
   if (isPlainObject(obj)) {
-    const resolved = Object.keys(obj).map(key =>
-      createElementInternal(
-        'property',
-        { name: key, key },
-        toElements(obj[key])
-      )
-    );
-    return createElementInternal('object', {}, resolved) as any;
+    return createObject(obj);
   }
   return createElementInternal('value', { value: obj }) as any;
 }
@@ -127,45 +142,22 @@ function createElementInternal(
   return React.createElement(type, props, ...children);
 }
 
-// function createElement<S, P>(
-//   component: StateComponent<P, S>,
-//   props: P
-// ): StateElement<S> {
-//   return React.createElement(component as any, props) as any;
-// }
-
 function createValue<V>(value: V): StateElement<V> {
   return createElementInternal('value', { value }) as any;
 }
 
-// type Children = { [key: string]: StateElement<any> };
-
-// function createObject<S extends Children>(
-//   children: S
-// ): StateElement<{ [K in keyof S]: S[K]['result'] }> {
-//   const resolved = children
-//     ? Object.keys(children).map(key =>
-//         createElementInternal('property', { name: key, key }, children[key])
-//       )
-//     : [];
-//   return createElementInternal('object', {}, resolved) as any;
-// }
-
-// type StrKeyed = { [key: string]: any };
-
-// function createMergeObject<
-//   L extends StateElement<StrKeyed>,
-//   R extends StateElement<StrKeyed>
-// >(left: L, right: R): StateElement<L['result'] & R['result']> {
-//   return createElementInternal('merge-object', {}, left, right) as any;
-// }
-
-function createArray<S extends Array<StateElement<any>>>(
+function createArray<S extends Array<any>>(
   children: S
-): StateElement<
-  { [K in keyof S]: S[K] extends StateElement<infer T> ? T : never }
-> {
-  return createElementInternal('array', {}, children) as any;
+): StateElement<ResolveType<S>> {
+  let changed = false;
+  const items = children.map(item => {
+    const next = toElements(item);
+    if (changed === false && next === item) {
+      changed = true;
+    }
+    return next;
+  });
+  return createElementInternal('array', {}, changed ? items : children) as any;
 }
 
 function createStore<T extends StateElement<any>>(
@@ -199,3 +191,32 @@ function createStore<T extends StateElement<any>>(
     subscribe: sub.subscribe,
   };
 }
+
+function createObject<S extends { [key: string]: any }>(
+  children: S
+): StateElement<ResolveType<S>> {
+  const resolved = Object.keys(children).map(key =>
+    createElementInternal(
+      'property',
+      { name: key, key },
+      toElements(children[key])
+    )
+  );
+  return createElementInternal('object', {}, resolved) as any;
+}
+
+// function createElement<S, P>(
+//   component: StateComponent<P, S>,
+//   props: P
+// ): StateElement<S> {
+//   return React.createElement(component as any, props) as any;
+// }
+
+// type StrKeyed = { [key: string]: any };
+
+// function createMergeObject<
+//   L extends StateElement<StrKeyed>,
+//   R extends StateElement<StrKeyed>
+// >(left: L, right: R): StateElement<L['result'] & R['result']> {
+//   return createElementInternal('merge-object', {}, left, right) as any;
+// }

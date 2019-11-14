@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { ReactStore } from '../src/index';
+import { ReactStore, StoreNode } from '../src/index';
 
 interface CounterState {
   value: number;
@@ -8,25 +8,35 @@ interface CounterState {
   decrement: () => void;
 }
 
-const CounterStateManager = ReactStore.createComponent<{}, CounterState>(() => {
-  const [counter, setCounter] = React.useState(0);
+const CounterStore = ReactStore.memo<CounterState, { index: number }>(
+  ({ index }) => {
+    const [counter, setCounter] = React.useState(0);
 
-  const increment = React.useCallback(() => {
-    setCounter(p => p + 1);
-  }, []);
+    console.log(`render counter store ${index}`);
 
-  const decrement = React.useCallback(() => {
-    setCounter(p => p - 1);
-  }, []);
+    const increment = React.useCallback(() => {
+      setCounter(p => p + 1);
+    }, []);
 
-  return ReactStore.createValue({
-    value: counter,
-    increment,
-    decrement,
-  });
-});
+    const decrement = React.useCallback(() => {
+      setCounter(p => p - 1);
+    }, []);
 
-const Counters = ReactStore.createComponent(() => {
+    return StoreNode.value({
+      value: counter,
+      increment,
+      decrement,
+    });
+  }
+);
+
+interface State {
+  counters: Array<CounterState>;
+  addCounter: () => void;
+  removeCounter: () => void;
+}
+
+const AppStore = ReactStore.component<State, {}>(() => {
   const [count, setCount] = React.useState(3);
 
   const addCounter = React.useCallback(() => {
@@ -37,46 +47,55 @@ const Counters = ReactStore.createComponent(() => {
     setCount(p => p - 1);
   }, []);
 
-  return {
+  return StoreNode.object({
     counters: new Array(count)
       .fill(null)
-      .map((v, i) => CounterStateManager({ key: i })),
+      .map((v, i) => CounterStore({ index: i, key: i })),
     addCounter,
     removeCounter,
-  };
+  });
 });
 
-const rootElement = Counters({});
+const Counter = React.memo<{
+  value: number;
+  increment: () => void;
+  decrement: () => void;
+  index: number;
+}>(function Counter({ value, decrement, increment, index }) {
+  console.log(`render counter component ${index}`);
+  return (
+    <div>
+      <button onClick={decrement}>-</button>
+      <span>{value}</span>
+      <button onClick={increment}>+</button>
+    </div>
+  );
+});
 
-const store = ReactStore.createStore(rootElement);
-
-const Counter = React.memo<{ counter: CounterState; index: number }>(
-  function Counter({ counter, index }) {
-    return (
-      <div>
-        <button onClick={counter.decrement}>-</button>
-        <span>{counter.value}</span>
-        <button onClick={counter.increment}>+</button>
-      </div>
-    );
-  }
-);
-
-function render() {
-  const state = store.getState();
-  ReactDOM.render(
+const App = React.memo<{ state: State }>(({ state }) => {
+  return (
     <div>
       <button onClick={state.addCounter}>Add counter</button>
       <button onClick={state.removeCounter}>Remove counter</button>
       <div>Sum: {state.counters.reduce((acc, v) => acc + v.value, 0)}</div>
       {state.counters.map((counter, index) => (
-        <Counter counter={counter} key={index} index={index} />
+        <Counter
+          value={counter.value}
+          decrement={counter.decrement}
+          increment={counter.increment}
+          key={index}
+          index={index}
+        />
       ))}
-    </div>,
-    document.getElementById('root')
+    </div>
   );
-}
+});
 
-store.subscribe(render);
+const store = ReactStore.createStore(AppStore());
+
+store.subscribe(() => {
+  const state = store.getState();
+  ReactDOM.render(<App state={state} />, document.getElementById('root'));
+});
 
 store.render();
