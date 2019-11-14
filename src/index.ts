@@ -187,7 +187,7 @@ function createStore<T extends StateElement<any>>(
       element,
       container,
       parentComponent,
-      null
+      () => {}
     );
   };
 
