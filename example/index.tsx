@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { ReactStore, StoreNode } from '../src/index';
+import ReactStore from '../src';
 
 interface CounterState {
   value: number;
@@ -22,7 +22,7 @@ const CounterStore = ReactStore.memo<CounterState, { index: number }>(
       setCounter(p => p - 1);
     }, []);
 
-    return StoreNode.value({
+    return ReactStore.Node.value({
       value: counter,
       increment,
       decrement,
@@ -47,7 +47,7 @@ const AppStore = ReactStore.component<State, {}>(() => {
     setCount(p => p - 1);
   }, []);
 
-  return StoreNode.object({
+  return ReactStore.Node.object({
     counters: new Array(count)
       .fill(null)
       .map((v, i) => CounterStore({ index: i, key: i })),

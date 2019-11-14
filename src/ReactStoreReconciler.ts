@@ -1,5 +1,5 @@
 import Reconciler, { HostConfig } from 'react-reconciler';
-import { Instance, InstanceIs } from './__Instance';
+import { Instance, InstanceIs } from './Instance';
 
 export type NodeType =
   | 'value'
