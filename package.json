@@ -45,5 +45,19 @@
   "dependencies": {
     "react-reconciler": "^0.23.0",
     "suub": "^1.4.2"
-  }
+  },
+  "description": "",
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etienne-dldc/react-store-reconciler.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/etienne-dldc/react-store-reconciler/issues"
+  },
+  "homepage": "https://github.com/etienne-dldc/react-store-reconciler#readme"
 }
