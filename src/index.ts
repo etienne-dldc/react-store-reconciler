@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, reconcilerInstance, NodeType } from './reconciler';
 import { Subscription, SubscribeMethod } from 'suub';
 import { Instance, InstanceIs } from './instance';
+import isPlainObject from 'is-plain-object';
 
 const IS_ELEM = Symbol('IS_ELEM');
 
@@ -25,8 +26,8 @@ function getState(instance: Instance): any {
     Object.keys(instance.children).forEach(key => {
       instance.cache[key] = getState(instance.children[key]);
     });
-  } else if (InstanceIs.State(instance)) {
-    instance.cache = instance.state;
+  } else if (InstanceIs.Value(instance)) {
+    instance.cache = instance.value;
   } else if (InstanceIs.Property(instance)) {
     instance.cache = getState(instance.children!);
   } else if (InstanceIs.Array(instance)) {
@@ -52,12 +53,71 @@ interface Store<S> {
 export const ReactStore = {
   createStore,
   createComponent,
-  createElement,
-  createState,
-  createObject,
-  createArray,
-  createMergeObject,
+  createValue,
 };
+
+type CreateElement<P, T> = (props: P) => StateElement<T>;
+
+export type IState = {
+  [key: string]:
+    | IState
+    | string
+    | StateElement<any>
+    | ((...args: Array<any>) => any)
+    | number
+    | boolean
+    | object
+    | null
+    | undefined;
+};
+
+export type ResolveType<State> = State extends StateElement<infer T>
+  ? T
+  : State extends (...args: Array<any>) => any
+  ? State
+  : State extends Array<infer T>
+  ? Array<ResolveType<T>>
+  : State extends IState
+  ? { [K in keyof State]: ResolveType<State[K]> }
+  : State;
+
+function createComponent<P, T>(
+  component: (props: P) => T | StateElement<T>
+): CreateElement<P, ResolveType<T>> {
+  const Comp = (props: P) => {
+    const out = component(props);
+    return toElements(out);
+  };
+  return (props: P) => React.createElement(Comp as any, props) as any;
+}
+
+function toElements<T>(obj: any): StateElement<T> {
+  if (React.isValidElement(obj)) {
+    return obj as any;
+  }
+  if (Array.isArray(obj)) {
+    let changed = false;
+    const items = obj.map(item => {
+      const next = toElements(item);
+      if (changed === false && next === item) {
+        changed = true;
+      }
+      return next;
+    });
+    return createArray((changed ? items : obj) as any) as any;
+  }
+  if (isPlainObject(obj)) {
+    const resolved = Object.keys(obj).map(key =>
+      createElementInternal(
+        'property',
+        { name: key, key },
+        toElements(obj[key])
+      )
+    );
+    return createElementInternal('object', {}, resolved) as any;
+  }
+  return createElementInternal('value', { value: obj }) as any;
+}
 
 function createElementInternal(
   type: NodeType,
@@ -67,38 +127,38 @@ function createElementInternal(
   return React.createElement(type, props, ...children);
 }
 
-function createElement<S, P>(
-  component: StateComponent<P, S>,
-  props: P
-): StateElement<S> {
-  return React.createElement(component as any, props) as any;
+// function createElement<S, P>(
+//   component: StateComponent<P, S>,
+//   props: P
+// ): StateElement<S> {
+//   return React.createElement(component as any, props) as any;
+// }
+
+function createValue<V>(value: V): StateElement<V> {
+  return createElementInternal('value', { value }) as any;
 }
 
-function createState<S>(state: S): StateElement<S> {
-  return createElementInternal('state', { state }) as any;
-}
+// type Children = { [key: string]: StateElement<any> };
 
-type Children = { [key: string]: StateElement<any> };
+// function createObject<S extends Children>(
+//   children: S
+// ): StateElement<{ [K in keyof S]: S[K]['result'] }> {
+//   const resolved = children
+//     ? Object.keys(children).map(key =>
+//         createElementInternal('property', { name: key, key }, children[key])
+//       )
+//     : [];
+//   return createElementInternal('object', {}, resolved) as any;
+// }
 
-function createObject<S extends Children>(
-  children: S
-): StateElement<{ [K in keyof S]: S[K]['result'] }> {
-  const resolved = children
-    ? Object.keys(children).map(key =>
-        createElementInternal('property', { name: key, key }, children[key])
-      )
-    : [];
-  return createElementInternal('object', {}, resolved) as any;
-}
+// type StrKeyed = { [key: string]: any };
 
-type StrKeyed = { [key: string]: any };
-
-function createMergeObject<
-  L extends StateElement<StrKeyed>,
-  R extends StateElement<StrKeyed>
->(left: L, right: R): StateElement<L['result'] & R['result']> {
-  return createElementInternal('merge-object', {}, left, right) as any;
-}
+// function createMergeObject<
+//   L extends StateElement<StrKeyed>,
+//   R extends StateElement<StrKeyed>
+// >(left: L, right: R): StateElement<L['result'] & R['result']> {
+//   return createElementInternal('merge-object', {}, left, right) as any;
+// }
 
 function createArray<S extends Array<StateElement<any>>>(
   children: S
@@ -106,12 +166,6 @@ function createArray<S extends Array<StateElement<any>>>(
   { [K in keyof S]: S[K] extends StateElement<infer T> ? T : never }
 > {
   return createElementInternal('array', {}, children) as any;
-}
-
-function createComponent<P, T>(
-  component: StateComponent<P, T>
-): StateComponent<P, T> {
-  return component;
 }
 
 function createStore<T extends StateElement<any>>(
@@ -133,9 +187,7 @@ function createStore<T extends StateElement<any>>(
       element,
       container,
       parentComponent,
-      () => {
-        root.onUpdate();
-      }
+      null
     );
   };
 

@@ -10,7 +10,7 @@ type CreateInstances<T> = {
 };
 
 type Instances = CreateInstances<{
-  State: { state: any };
+  Value: { value: any };
   Object: { children: { [key: string]: Instance } };
   Property: { key: string; children: Instance | null };
   Array: { children: Array<Instance> };
@@ -23,7 +23,7 @@ export type Instance<K extends InstanceType = InstanceType> = Instances[K];
 
 const INSTANCES_OBJ: { [K in InstanceType]: null } = {
   Property: null,
-  State: null,
+  Value: null,
   Object: null,
   Array: null,
   MergeObject: null,

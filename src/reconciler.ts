@@ -1,9 +1,8 @@
 import Reconciler, { HostConfig } from 'react-reconciler';
-import { shallowEqual } from './utils';
 import { Instance, InstanceIs } from './instance';
 
 export type NodeType =
-  | 'state'
+  | 'value'
   | 'property'
   | 'object'
   | 'array'
@@ -18,8 +17,8 @@ type PublicInstance = any;
 type HostContext = {};
 type UpdatePayload =
   | {
-      type: 'replace-state';
-      state: any;
+      type: 'replace-value';
+      value: any;
     }
   | {
       type: 'rename-property';
@@ -83,10 +82,10 @@ const StateHostConfig: HostConfig<
       dirty: true,
       cache: null,
     };
-    if (type === 'state') {
+    if (type === 'value') {
       return {
-        type: 'State',
-        state: newProps.state,
+        type: 'Value',
+        value: newProps.value,
         ...common,
       };
     }
@@ -154,8 +153,8 @@ const StateHostConfig: HostConfig<
       child.parent = parent;
       return;
     }
-    if (InstanceIs.State(parent)) {
-      throw new Error('children of state ??');
+    if (InstanceIs.Value(parent)) {
+      throw new Error('children of value ??');
     }
     throw new Error('whaat ?');
   },
@@ -174,8 +173,8 @@ const StateHostConfig: HostConfig<
     return getUpdatePayload(instance, oldProps, newProps);
   },
   commitUpdate: (instance, updatePayload) => {
-    if (InstanceIs.State(instance) && updatePayload.type === 'replace-state') {
-      instance.state = updatePayload.state;
+    if (InstanceIs.Value(instance) && updatePayload.type === 'replace-value') {
+      instance.value = updatePayload.value;
       setDirty(instance);
       return;
     }
@@ -232,11 +231,11 @@ function getUpdatePayload(
   oldProps: any,
   newProps: any
 ): UpdatePayload | null {
-  if (InstanceIs.State(instance)) {
-    if (shallowEqual(oldProps.state, newProps.state) === false) {
+  if (InstanceIs.Value(instance)) {
+    if (oldProps.value !== newProps.value) {
       return {
-        type: 'replace-state',
-        state: newProps.state,
+        type: 'replace-value',
+        value: newProps.value,
       };
     }
     return null;
