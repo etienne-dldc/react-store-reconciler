@@ -1,5 +1,5 @@
 import Reconciler, { HostConfig } from 'react-reconciler';
-import { Instance, InstanceIs } from './instance';
+import { Instance, InstanceIs } from './__Instance';
 
 export type NodeType =
   | 'value'
@@ -266,4 +266,4 @@ function getUpdatePayload(
   return null;
 }
 
-export const reconcilerInstance = Reconciler(StateHostConfig);
+export const ReactStoreReconciler = Reconciler(StateHostConfig);

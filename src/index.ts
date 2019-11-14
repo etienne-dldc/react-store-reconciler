@@ -1,7 +1,11 @@
 import React from 'react';
-import { Container, reconcilerInstance, NodeType } from './reconciler';
+import {
+  Container,
+  ReactStoreReconciler,
+  NodeType,
+} from './ReactStoreReconciler';
 import { Subscription, SubscribeMethod } from 'suub';
-import { Instance, InstanceIs } from './instance';
+import { Instance, InstanceIs } from './__Instance';
 import isPlainObject from 'is-plain-object';
 
 const IS_ELEM = Symbol('IS_ELEM');
@@ -50,7 +54,7 @@ interface Store<S> {
   render: () => void;
 }
 
-export const StoreNode = {
+export const ReactStoreNode = {
   value: createValue,
   object: createObject,
   array: createArray,
@@ -60,6 +64,7 @@ export const ReactStore = {
   createStore,
   component: createComponent,
   memo: createMemoComponent,
+  Node: ReactStoreNode,
 };
 
 type AllOptional<P = {}> = {} extends P
@@ -173,9 +178,9 @@ function createStore<T extends StateElement<any>>(
   };
 
   const render = () => {
-    const container = reconcilerInstance.createContainer(root, false, false);
+    const container = ReactStoreReconciler.createContainer(root, false, false);
     const parentComponent = null;
-    reconcilerInstance.updateContainer(
+    ReactStoreReconciler.updateContainer(
       element,
       container,
       parentComponent,
@@ -204,19 +209,3 @@ function createObject<S extends { [key: string]: any }>(
   );
   return createElementInternal('object', {}, resolved) as any;
 }
-
-// function createElement<S, P>(
-//   component: StateComponent<P, S>,
-//   props: P
-// ): StateElement<S> {
-//   return React.createElement(component as any, props) as any;
-// }
-
-// type StrKeyed = { [key: string]: any };
-
-// function createMergeObject<
-//   L extends StateElement<StrKeyed>,
-//   R extends StateElement<StrKeyed>
-// >(left: L, right: R): StateElement<L['result'] & R['result']> {
-//   return createElementInternal('merge-object', {}, left, right) as any;
-// }
