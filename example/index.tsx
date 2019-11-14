@@ -8,6 +8,7 @@ interface CounterState {
   decrement: () => void;
 }
 
+// This is almost a normal React Component...
 const CounterStore = ReactStore.memo<CounterState, { index: number }>(
   ({ index }) => {
     const [counter, setCounter] = React.useState(0);
@@ -22,11 +23,19 @@ const CounterStore = ReactStore.memo<CounterState, { index: number }>(
       setCounter(p => p - 1);
     }, []);
 
-    return ReactStore.Node.value({
-      value: counter,
-      increment,
-      decrement,
-    });
+    const result = React.useMemo(
+      () => ({
+        value: counter,
+        increment,
+        decrement,
+      }),
+      [counter, decrement, increment]
+    );
+
+    // ... except instead of JSX you return some data
+    // NOTE: we could return the result directly
+    // but ReactStore.Node.value indicate that there are no sub-store and optimize update
+    return ReactStore.Node.value(result);
   }
 );
 
@@ -36,6 +45,7 @@ interface State {
   removeCounter: () => void;
 }
 
+// Just like normal React, you can compose stores
 const AppStore = ReactStore.component<State, {}>(() => {
   const [count, setCount] = React.useState(3);
 
@@ -47,7 +57,10 @@ const AppStore = ReactStore.component<State, {}>(() => {
     setCount(p => p - 1);
   }, []);
 
+  // Here ReactStore.Node.object is only usefull for typings
+  // we could also return the object directly in plain JS
   return ReactStore.Node.object({
+    // return as many CounterStore as count
     counters: new Array(count)
       .fill(null)
       .map((v, i) => CounterStore({ index: i, key: i })),
@@ -55,6 +68,9 @@ const AppStore = ReactStore.component<State, {}>(() => {
     removeCounter,
   });
 });
+
+// Now let's create some Components to render
+// NOTE: we could use any other library to render (Vue, Preact, Angular...) !
 
 const Counter = React.memo<{
   value: number;
@@ -91,11 +107,16 @@ const App = React.memo<{ state: State }>(({ state }) => {
   );
 });
 
+// We create the store...
 const store = ReactStore.createStore(AppStore());
 
+// ...then subscribe
 store.subscribe(() => {
+  // when the state change
   const state = store.getState();
+  // we render the app
   ReactDOM.render(<App state={state} />, document.getElementById('root'));
 });
 
+// state everything
 store.render();
