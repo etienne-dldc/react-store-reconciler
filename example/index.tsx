@@ -33,6 +33,10 @@ const Counters = ReactStore.createComponent(() => {
     setCount(p => p + 1);
   }, []);
 
+  const removeCounter = React.useCallback(() => {
+    setCount(p => p - 1);
+  }, []);
+
   return ReactStore.createMergeObject(
     ReactStore.createObject({
       counters: ReactStore.createArray(
@@ -45,6 +49,7 @@ const Counters = ReactStore.createComponent(() => {
     }),
     ReactStore.createState({
       addCounter,
+      removeCounter,
     })
   );
 });
@@ -70,6 +75,7 @@ function render() {
   ReactDOM.render(
     <div>
       <button onClick={state.addCounter}>Add counter</button>
+      <button onClick={state.removeCounter}>Remove counter</button>
       {state.counters.map((counter, index) => (
         <Counter counter={counter} key={index} />
       ))}

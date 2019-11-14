@@ -16,7 +16,7 @@ type TextInstance = Instance;
 type HydratableInstance = any;
 type PublicInstance = any;
 type HostContext = {};
-type UpdatePayloadItem =
+type UpdatePayload =
   | {
       type: 'replace-state';
       state: any;
@@ -26,10 +26,6 @@ type UpdatePayloadItem =
       oldProperty: string;
       newProperty: string;
     };
-type UpdatePayload = {
-  action: UpdatePayloadItem;
-  onUpdate: () => void;
-};
 type ChildSet = any;
 type TimeoutHandle = any;
 type NoTimeout = -1;
@@ -165,47 +161,30 @@ const StateHostConfig: HostConfig<
   },
   finalizeInitialChildren: () => false,
   prepareForCommit: () => {},
-  resetAfterCommit: () => {},
+  resetAfterCommit: container => {
+    container.onUpdate();
+  },
   commitMount: () => {
     console.log('commitMount');
   },
   appendChildToContainer: (parent, child) => {
-    console.log('appendChildToContainer');
     parent.current = child;
   },
-  prepareUpdate: (
-    instance,
-    _type,
-    oldProps,
-    newProps,
-    rootContainerInstance
-  ) => {
-    const action = getUpdatePayload(instance, oldProps, newProps);
-    if (action) {
-      return {
-        action,
-        onUpdate: rootContainerInstance.onUpdate,
-      };
-    }
-    return null;
+  prepareUpdate: (instance, _type, oldProps, newProps) => {
+    return getUpdatePayload(instance, oldProps, newProps);
   },
   commitUpdate: (instance, updatePayload) => {
-    if (
-      InstanceIs.State(instance) &&
-      updatePayload.action.type === 'replace-state'
-    ) {
-      instance.state = updatePayload.action.state;
+    if (InstanceIs.State(instance) && updatePayload.type === 'replace-state') {
+      instance.state = updatePayload.state;
       setDirty(instance);
-      updatePayload.onUpdate();
       return;
     }
     if (
       InstanceIs.Property(instance) &&
-      updatePayload.action.type === 'rename-property'
+      updatePayload.type === 'rename-property'
     ) {
-      instance.key = updatePayload.action.newProperty;
+      instance.key = updatePayload.newProperty;
       setDirty(instance);
-      updatePayload.onUpdate();
       return;
     }
     console.log('commitUpdate');
@@ -223,7 +202,12 @@ const StateHostConfig: HostConfig<
     console.log('appendChild');
     // parentInstance.insertBefore(child, beforeChild);
   },
-  removeChild: () => {
+  removeChild: (parent, child) => {
+    if (InstanceIs.Array(parent)) {
+      parent.children.splice(parent.children.indexOf(child), 1);
+      setDirty(parent);
+      return;
+    }
     console.log('removeChild');
     // parentInstance.removeChild(child);
   },
@@ -247,7 +231,7 @@ function getUpdatePayload(
   instance: Instance,
   oldProps: any,
   newProps: any
-): UpdatePayloadItem | null {
+): UpdatePayload | null {
   if (InstanceIs.State(instance)) {
     if (shallowEqual(oldProps.state, newProps.state) === false) {
       return {
