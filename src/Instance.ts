@@ -14,7 +14,6 @@ type Instances = CreateInstances<{
   Object: { children: { [key: string]: Instance } };
   Property: { key: string; children: Instance | null };
   Array: { children: Array<Instance> };
-  MergeObject: { left: Instance | null; right: Instance | null };
 }>;
 
 type InstanceType = keyof Instances;
@@ -26,7 +25,6 @@ const INSTANCES_OBJ: { [K in InstanceType]: null } = {
   Value: null,
   Object: null,
   Array: null,
-  MergeObject: null,
 };
 
 const INTANCES = Object.keys(INSTANCES_OBJ) as Array<InstanceType>;

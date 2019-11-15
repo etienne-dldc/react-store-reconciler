@@ -36,11 +36,6 @@ function getState(instance: Instance): any {
     instance.cache = getState(instance.children!);
   } else if (InstanceIs.Array(instance)) {
     instance.cache = instance.children.map(inst => getState(inst));
-  } else if (InstanceIs.MergeObject(instance)) {
-    instance.cache = {
-      ...(instance.left ? getState(instance.left) : {}),
-      ...(instance.right ? getState(instance.right) : {}),
-    };
   } else {
     throw new Error(`Unhandled getState for ${(instance as any).type}`);
   }

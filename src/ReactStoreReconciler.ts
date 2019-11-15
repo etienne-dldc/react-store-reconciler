@@ -1,12 +1,7 @@
 import Reconciler, { HostConfig } from 'react-reconciler';
 import { Instance, InstanceIs } from './Instance';
 
-export type NodeType =
-  | 'value'
-  | 'property'
-  | 'object'
-  | 'array'
-  | 'merge-object';
+export type NodeType = 'value' | 'property' | 'object' | 'array';
 type Props = any;
 
 export type Container = { current: Instance | null; onUpdate: () => void };
@@ -111,29 +106,12 @@ const StateHostConfig: HostConfig<
         children: [],
       };
     }
-    if (type === 'merge-object') {
-      return {
-        type: 'MergeObject',
-        ...common,
-        left: null,
-        right: null,
-      };
-    }
     console.warn(`Invalid type ${type}`);
     throw new Error(`Invalid type ${type}`);
   },
   appendInitialChild: (parent, child) => {
     if (InstanceIs.Property(parent)) {
       parent.children = child;
-      child.parent = parent;
-      return;
-    }
-    if (InstanceIs.MergeObject(parent)) {
-      if (parent.left === null) {
-        parent.left = child;
-      } else {
-        parent.right = child;
-      }
       child.parent = parent;
       return;
     }
@@ -255,10 +233,6 @@ function getUpdatePayload(
     return null;
   }
   if (InstanceIs.Object(instance)) {
-    // console.log({ oldProps, newProps });
-    return null;
-  }
-  if (InstanceIs.MergeObject(instance)) {
     // console.log({ oldProps, newProps });
     return null;
   }

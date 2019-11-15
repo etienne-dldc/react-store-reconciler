@@ -8,9 +8,20 @@ This is basically React except you return your state instead of JSX.
 
 This project is en experiment and should not be used in Production yet.
 
+## Full power of React
+
+Because this is React, you can use all the tool you're familiar with:
+
+- `useEffect`
+- Some custom hook fo data fetching ?
+- Context
+
 ## Status
 
-For now only what's needed to make the example work is implemented.
+For now only what's needed to make the example work is implemented:
+
+- Return `array`, `object`, `value`
+- Add / remove on `array`
 
 ## Gist
 
