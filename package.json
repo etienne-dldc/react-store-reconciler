@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "start": "tsdx watch",
-    "build": "tsdx build",
+    "build": "tsdx build --target web",
     "test": "tsdx test --env=jsdom",
     "lint": "tsdx lint",
     "pub": "np"
