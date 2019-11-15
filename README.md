@@ -135,6 +135,6 @@ store.subscribe(() => {
   ReactDOM.render(<App state={state} />, document.getElementById('root'));
 });
 
-// state everything
+// start everything
 store.render();
 ```
