@@ -50,8 +50,8 @@ const StateHostConfig: HostConfig<
   NoTimeout
 > = {
   now: Date.now,
-  setTimeout: window.setTimeout,
-  clearTimeout: window.clearTimeout,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
   noTimeout: -1,
   supportsMutation: true,
   isPrimaryRenderer: false,
