@@ -4,7 +4,13 @@
 
 This is basically React except you return your state instead of JSX.
 
-<p style="text-align: center;">⚠️⚠️ EXPERIMENTAL ⚠️⚠️</p>
+## ⚠️⚠️ EXPERIMENTAL ⚠️⚠️
+
+This project is en experiment and should not be used in Production yet.
+
+## Status
+
+For now only what's needed to make the example work is implemented.
 
 ## Gist
 
