@@ -43,7 +43,7 @@ function getState(instance: Instance): any {
   return instance.cache;
 }
 
-interface Store<S> {
+export interface Store<S> {
   getState: () => S;
   subscribe: SubscribeMethod<void>;
   render: () => void;
