@@ -1,6 +1,6 @@
 {
   "name": "react-store-reconciler",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.8",
   "license": "MIT",
   "author": "Etienne Dldc",
   "main": "dist/index.js",
