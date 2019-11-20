@@ -1,7 +1,10 @@
+import Reconciler from 'react-reconciler';
+
 export type InstanceCommon = {
   id: number;
   parent: Instance | null;
   dirty: boolean;
+  fiber: Reconciler.Fiber;
   cache: any;
 };
 
@@ -10,7 +13,7 @@ type CreateInstances<T> = {
 };
 
 type Instances = CreateInstances<{
-  Value: { value: any };
+  Static: { value: any };
   Object: { children: { [key: string]: Instance } };
   Property: { key: string; children: Instance | null };
   Array: { children: Array<Instance> };
@@ -21,9 +24,9 @@ type InstanceType = keyof Instances;
 export type Instance<K extends InstanceType = InstanceType> = Instances[K];
 
 const INSTANCES_OBJ: { [K in InstanceType]: null } = {
-  Property: null,
-  Value: null,
+  Static: null,
   Object: null,
+  Property: null,
   Array: null,
 };
 

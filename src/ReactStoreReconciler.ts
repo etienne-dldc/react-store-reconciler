@@ -1,7 +1,7 @@
 import Reconciler, { HostConfig } from 'react-reconciler';
 import { Instance, InstanceIs } from './Instance';
 
-export type NodeType = 'value' | 'property' | 'object' | 'array';
+export type NodeType = 'static' | 'object' | 'property' | 'array';
 type Props = any;
 
 export type Container = { current: Instance | null; onUpdate: () => void };
@@ -70,16 +70,23 @@ const StateHostConfig: HostConfig<
   resetTextContent: () => {},
   commitTextUpdate: () => {},
 
-  createInstance: (type, newProps) => {
+  createInstance: (
+    type,
+    newProps,
+    _rootContainerInstance,
+    _hostContext,
+    internalInstanceHandle
+  ) => {
     const common = {
       id: instanceCounter++,
+      fiber: internalInstanceHandle,
       parent: null,
       dirty: true,
       cache: null,
     };
-    if (type === 'value') {
+    if (type === 'static') {
       return {
-        type: 'Value',
+        type: 'Static',
         value: newProps.value,
         ...common,
       };
@@ -131,8 +138,8 @@ const StateHostConfig: HostConfig<
       child.parent = parent;
       return;
     }
-    if (InstanceIs.Value(parent)) {
-      throw new Error('children of value ??');
+    if (InstanceIs.Static(parent)) {
+      throw new Error('children of static ??');
     }
     throw new Error('whaat ?');
   },
@@ -151,7 +158,7 @@ const StateHostConfig: HostConfig<
     return getUpdatePayload(instance, oldProps, newProps);
   },
   commitUpdate: (instance, updatePayload) => {
-    if (InstanceIs.Value(instance) && updatePayload.type === 'replace-value') {
+    if (InstanceIs.Static(instance) && updatePayload.type === 'replace-value') {
       instance.value = updatePayload.value;
       setDirty(instance);
       return;
@@ -209,7 +216,7 @@ function getUpdatePayload(
   oldProps: any,
   newProps: any
 ): UpdatePayload | null {
-  if (InstanceIs.Value(instance)) {
+  if (InstanceIs.Static(instance)) {
     if (oldProps.value !== newProps.value) {
       return {
         type: 'replace-value',
