@@ -243,7 +243,6 @@ function createStore<T extends Element<any>>(
   return {
     render,
     getState: () => {
-      console.log(root.current);
       return getState(root.current!);
     },
     subscribe: sub.subscribe,
